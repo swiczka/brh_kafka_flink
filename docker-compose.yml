@@ -1,4 +1,4 @@
-name: dymora
+name: brh
 
 # Konfiguracja wspólna dla jobmanagera i taskmanagera Flinka.
 x-flink-properties: &flink-properties |
