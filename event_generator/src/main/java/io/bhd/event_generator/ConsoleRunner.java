@@ -18,6 +18,7 @@ public class ConsoleRunner implements CommandLineRunner {
               tamper|duplicate|gap|garbage <0-100>
                                         - procent danej anomalii
               status                    - ustawienia i liczniki
+              forge                     - test ACL: zapis prosto do events.verified
               help | quit""";
 
     private final EventGenerator generator;
@@ -43,6 +44,7 @@ public class ConsoleRunner implements CommandLineRunner {
                     case "rate" -> generator.setRate(number(cmd));
                     case "tamper", "duplicate", "gap", "garbage" -> generator.setPercent(cmd[0], number(cmd));
                     case "status" -> System.out.println(generator.status());
+                    case "forge" -> System.out.println(generator.forge());
                     case "help" -> System.out.println(HELP);
                     case "quit", "exit" -> {
                         generator.stop();

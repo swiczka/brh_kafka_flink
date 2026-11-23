@@ -13,6 +13,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.LockSupport;
 
@@ -50,7 +51,7 @@ public class EventGenerator {
         this.kafka = kafka;
         this.hmacKey = hmacKey.getBytes(StandardCharsets.UTF_8);
         this.accounts = accounts;
-        ANOMALIES.forEach(a -> percents.put(a, 0));
+        ANOMALIES.forEach(a -> percents.put(a, 1));
     }
 
     public synchronized void start() {
@@ -63,6 +64,25 @@ public class EventGenerator {
 
     public void stop() {
         running = false;
+    }
+
+    /** Test ACL: poprawnie podpisane zdarzenie wysłane z pominięciem Flinka prosto do events.verified. */
+    public String forge() {
+        Event e = Event.signed(UUID.randomUUID().toString(), "ACC-1", 100, "PLN", System.currentTimeMillis(),
+                1, Hmac.GENESIS, hmacKey);
+        try {
+            kafka.send("events.verified", e.accountId(), e.toJson()).get(15, TimeUnit.SECONDS);
+            return "UWAGA: zapis do events.verified się udał - ACL nie działa!";
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+            return "Przerwano";
+        } catch (Exception ex) {
+            Throwable root = ex;
+            while (root.getCause() != null) {
+                root = root.getCause();
+            }
+            return "Odmowa: " + root;
+        }
     }
 
     public void setRate(int eventsPerSecond) {
@@ -103,6 +123,7 @@ public class EventGenerator {
                 head == null ? 1 : head.seq() + 1,
                 head == null ? Hmac.GENESIS : head.hmac(),
                 hmacKey);
+        System.out.println(e.toJson());
         if (roll("tamper")) {
             // łańcuch się nie przesuwa: następne zdarzenie zajmie to samo miejsce poprawnie podpisane
             send(account, e.withAmount(e.amountCents() * 100).toJson(), "tamper");
