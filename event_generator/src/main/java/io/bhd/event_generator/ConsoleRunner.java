@@ -19,14 +19,18 @@ public class ConsoleRunner implements CommandLineRunner {
                                         - procent danej anomalii
               status                    - ustawienia i liczniki
               forge                     - test ACL: zapis prosto do events.verified
+              stats                     - liczba wiadomości w topikach (zatwierdzone / wszystkie)
+              complex-stats             - liczba wiadomości z podziałem na commited/uncommited
               help | quit""";
 
     private final EventGenerator generator;
     private final KafkaTemplate<String, String> kafka;
+    private final Stats stats;
 
-    public ConsoleRunner(EventGenerator generator, KafkaTemplate<String, String> kafka) {
+    public ConsoleRunner(EventGenerator generator, KafkaTemplate<String, String> kafka, Stats stats) {
         this.generator = generator;
         this.kafka = kafka;
+        this.stats = stats;
     }
 
     @Override
@@ -45,6 +49,8 @@ public class ConsoleRunner implements CommandLineRunner {
                     case "tamper", "duplicate", "gap", "garbage" -> generator.setPercent(cmd[0], number(cmd));
                     case "status" -> System.out.println(generator.status());
                     case "forge" -> System.out.println(generator.forge());
+                    case "stats" -> System.out.println(stats.report());
+                    case "complex-stats" -> System.out.println(generator.complexStats());
                     case "help" -> System.out.println(HELP);
                     case "quit", "exit" -> {
                         generator.stop();

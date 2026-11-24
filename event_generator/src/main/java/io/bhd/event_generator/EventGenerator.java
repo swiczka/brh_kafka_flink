@@ -7,10 +7,7 @@ import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.stereotype.Component;
 
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
@@ -42,15 +39,19 @@ public class EventGenerator {
     // ostatnie zdarzenie w łańcuchu każdego konta; używane tylko przez wątek generatora
     private final Map<String, Event> heads = new HashMap<>();
 
+    private final Stats statsReporter;
+
     private volatile boolean running;
     private volatile int rate = 10;
 
     public EventGenerator(KafkaTemplate<String, String> kafka,
+                          Stats statsReporter,
                           @Value("${HMAC_KEY}") String hmacKey,
                           @Value("${generator.accounts:10}") int accounts) {
         this.kafka = kafka;
         this.hmacKey = hmacKey.getBytes(StandardCharsets.UTF_8);
         this.accounts = accounts;
+        this.statsReporter = statsReporter;
         ANOMALIES.forEach(a -> percents.put(a, 1));
     }
 
@@ -83,6 +84,10 @@ public class EventGenerator {
             }
             return "Odmowa: " + root;
         }
+    }
+
+    public String complexStats(){
+        return statsReporter.report();
     }
 
     public void setRate(int eventsPerSecond) {
